@@ -53,6 +53,7 @@ a, a:visited, a:active {
 #query {
 	margin:0;
 	position:relative;
+	display:inline-block;
 }
 #query input {
 	width:30em;
@@ -76,15 +77,58 @@ a, a:visited, a:active {
 #context-bar > li:first-child {
 	margin-left:0;
 }
-#context-bar > li {
+#context-bar > li, #phoneme_pane {
 	background-color: #FFF;
 	border-radius:0.2em;
 	border:#BBB solid 1px;
-	padding:1em;
-	margin:1em;
-	margin-right:0;
+	margin:1em 0;
 	display:inline-block;
 	box-shadow:0 2px 2px rgba(0, 0, 0, 0.15);
+}
+#context-bar > li {
+	margin:1em;
+	margin-right:0;
+	padding:1em;
+}
+
+.github {
+	background-image:url(../img/github.png);
+	background-size:contain;
+	width:1.5em;
+	height:1.5em;
+	display:inline-block;
+}
+.hidden {
+	width:1px;
+	height:1px;
+	position:absolute;
+	left:-8192px;
+	top:-8192px;
+	z-index:-255;
+}
+
+#in_ph, #out_ph {
+	padding:1em;
+}
+#in_ph {
+	border-bottom:#CCC solid 1px;
+}
+
+#phoneme_pane h3 {
+	font-size:0.8em;
+	color:#AAA;
+	text-transform:uppercase;
+	margin:0;
+}
+#phoneme_pane .term {
+	font-family:monospace;
+	margin:0 0.2em;
+	display:inline-block;
+}
+.phoneme-list {
+	list-style-type:none;
+	margin:0;
+	padding:0;
 }
 
 .lds-ellipsis {

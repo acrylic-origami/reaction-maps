@@ -2,6 +2,8 @@
   "dependencies": {
     "@mapbox/polyline": "^1.1.0",
     "body-parser": "^1.19.0",
+    "immutable": "^4.0.0-rc.12",
+    "js-base64": "^2.5.1",
     "leaflet": "^1.6.0",
     "q": "^1.5.1",
     "react-dom": "^16.12.0",
