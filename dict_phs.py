@@ -7,7 +7,7 @@ import random
 R = 0.5
 
 if __name__ == '__main__':
-	conn = psycopg2.connect('dbname=x2260 user=derek-lam')
+	conn = psycopg2.connect('dbname=x2260 user=web')
 	conn.autocommit = True
 	
 	cur = conn.cursor()

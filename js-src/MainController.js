@@ -78,16 +78,20 @@ export default class extends React.Component {
 		if(l.n_request != this.state.n_request) {
 			const term = this.state.term;
 			history.pushState({}, `route-${term}`, `?q=${Base64.encode(term)}`)
+			const fail = e => {
+				console.log(e);
+				this.setState(({ n_fulfilled }) => { n_fulfilled + 1 });
+			}
 			const P = fetch(`/q?term=${term}`)
-				.then((res_towns) => res_towns.ok && res_towns.json()
+				.then((res_towns) => { if(res_towns.ok) return res_towns.json(); else throw new Error(`Request failure for ${term}.`); }
 				)
 				.then(([ term_ph, path ]) =>
 					this.handle_path(term, path)
 					    .then(_ => this.setState({
 					    	term_ph,
 					    	path_ph: path.map(p => p[4]).flat()
-					    })))
-				.catch(console.log);
+					    })), fail)
+				.catch(fail);
 			this.setState({
 				request: P
 			});
@@ -129,7 +133,7 @@ export default class extends React.Component {
 					<a href="https://github.com/acrylic-origami/reaction-maps" target="_blank"><span className="github">&nbsp;</span></a>
 				</li>
 				<li>
-					<input type="checkbox" name="show-ph" onChange={e => this.setState({ show_ph: e.target.checked })} checked={ this.state.show_ph } /><label htmlFor="show-ph">Show phonemes</label>
+					<input type="checkbox" id="show-ph" onChange={e => this.setState({ show_ph: e.target.checked })} checked={ this.state.show_ph } /><label htmlFor="show-ph">Show phonemes</label>
 				</li>
 			</ul>
 			<input type="text" className="hidden" ref={this.uri_stash} value={window.location.href} />

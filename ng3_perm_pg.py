@@ -1,7 +1,7 @@
 import numpy as np
 import psycopg2
 
-conn = psycopg2.connect('dbname=x2260 user=derek-lam')
+conn = psycopg2.connect('dbname=x2260 user=web')
 conn.autocommit = True
 cur = conn.cursor()
 L = np.load('ng3_perms_NN_20.npy')
