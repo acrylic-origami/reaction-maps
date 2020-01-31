@@ -23,6 +23,7 @@ export default class extends React.Component {
 			path: [],
 			path_ph: [],
 			waypoints: [],
+			err: null,
 			copying: false
 		};
 		
@@ -38,18 +39,27 @@ export default class extends React.Component {
 				})
 				.then(res => res.json())
 				.then(path => this.handle_path('', path))
+				.catch(_ => this.fail(new Error('Could not handle path supplied by URL')))
 			}
 		}
 	}
 	componentDidMount() {
 		this.search_bar_ref.current.focus();
 	}
+	fail = (e) => {
+		this.setState(({ n_fulfilled }) => ({ err: [e.message, false], n_fulfilled: n_fulfilled + 1 }));
+	}
 	handle_path = (term, path_) => {
 		const path = path_.filter(p => p[0] !== null);
 		const waypoints = path.map(p => [p[0], latLng(p[1], p[2])] );
 		history.pushState({}, `route-${term}-done`, `?q=${Base64.encode(term)}&a=${encodeURI(path.map(p => p[3]))}`)
 		return fetch(`http://router.project-osrm.org/route/v1/driving/${path.map(p => `${p[2]},${p[1]}`).join(';')}`)
-			.then(r => r.json())
+			.then(r => {
+				if(r.ok)
+					return r.json();
+				else
+					throw new Error('Failed to query OSRM routing server.');
+			})
 			.then(({ routes: [{geometry}] }) =>
 				this.setState(({ n_fulfilled }) => ({
 					path: decode(geometry).map(p => latLng(p[0], p[1])),
@@ -57,10 +67,11 @@ export default class extends React.Component {
 					n_fulfilled: n_fulfilled + 1
 				}))
 			)
-			.catch(_ => this.setState(({ n_fulfilled }) => ({
+			.catch(e => this.setState(({ n_fulfilled }) => ({
 				path: waypoints.map(p => p[1]),
 				waypoints,
-				n_fulfilled: n_fulfilled + 1
+				n_fulfilled: n_fulfilled + 1,
+				err: e.msg
 			})))
 	}
 	copyURI = () => {
@@ -71,7 +82,12 @@ export default class extends React.Component {
 		this.setState({ copying: true });
 	}
 	componentDidUpdate(_, l) {
-		console.log(this.state.n_request, this.state.n_fulfilled);
+		// console.log(this.state.n_request, this.state.n_fulfilled);
+		if(this.state.err !== null && !this.state.err[1]) {
+			const this_err = this.state.err[0];
+			this.setState(({ err: [err, _] }) => (err === this_err ? { err: [this_err, true] } : {}));
+			setTimeout(_ => this.setState(({ err: [err, _] }) => (err === this_err ? { err: null } : {})), 4000);
+		}
 		if(this.state.copying)
 			setTimeout(_ => this.setState({ copying: false }), 1000);
 		
@@ -83,15 +99,21 @@ export default class extends React.Component {
 				this.setState(({ n_fulfilled }) => { n_fulfilled + 1 });
 			}
 			const P = fetch(`/q?term=${term}`)
-				.then((res_towns) => { if(res_towns.ok) return res_towns.json(); else throw new Error(`Request failure for ${term}.`); }
-				)
+				.then((res_towns) => {
+					if(res_towns.ok)
+						return res_towns.json();
+					else
+						return res_towns.text().then(t => {
+							throw new Error(t);
+						});
+				})
 				.then(([ term_ph, path ]) =>
 					this.handle_path(term, path)
 					    .then(_ => this.setState({
 					    	term_ph,
 					    	path_ph: path.map(p => p[4]).flat()
-					    })), fail)
-				.catch(fail);
+					    })))
+				.catch(this.fail);
 			this.setState({
 				request: P
 			});
@@ -139,7 +161,12 @@ export default class extends React.Component {
 			<input type="text" className="hidden" ref={this.uri_stash} value={window.location.href} />
 			<div>
 				<form onSubmit = {e => this.setState(({ n_request }) => ({ n_request: n_request + 1 })) || e.preventDefault()} id="query">
-					<input type="text" ref={this.search_bar_ref} onChange={e => this.setState({ term: e.target.value })} value={this.state.term} placeholder='Search phrase (e.g. jump in a big hole)' />
+					<input type="text"
+						ref={this.search_bar_ref}
+						onChange={e => this.setState({ term: e.target.value })}
+						className={this.state.err && 'err'}
+						value={this.state.term}
+						placeholder='Search phrase (e.g. jump in a big hole)' />
 					{ (this.state.n_request > this.state.n_fulfilled) && <div className="lds-ellipsis"><div></div><div></div><div></div><div></div></div> }
 				</form>
 			</div>
@@ -159,6 +186,9 @@ export default class extends React.Component {
 					</div>
 				</div>
 				: null }
+			{ this.state.err && <div id="err_container">
+					{this.state.err[0]}
+				</div> }
 		</div>
 	</div>
 }
