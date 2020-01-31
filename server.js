@@ -1,7 +1,6 @@
 const express = require('express');
 	const app = express();
 const Q = require('q');
-const format = require('pg-format');
 const { OrderedMap } = require('immutable');
 const { Pool } = require('pg');
 	const pool = new Pool({
@@ -11,11 +10,6 @@ const { Pool } = require('pg');
 		database: 'x2260',
 		idleTimeoutMillis: 0
 	});
-
-function fail() {
-	console.log(arguments);
-	process.exit(1);
-}
 
 // const target = 'if only this damn application were easier to program, then i\'d be rolling in it alas too many cities';
 
@@ -30,7 +24,10 @@ app.listen(8080);
 // psql.query('CREATE TEMPORARY TABLE tph (p VARCHAR(64), n SERIAL PRIMARY KEY);')
 // 	.then(_ => psql.query('INSERT INTO tph VALUES %L', target.split(' ')))
 // 	.then(_ => psql.query('SELECT * FROM tph'))
-const US_ID = 497230;
+
+function rethrow(msg) {
+	return e => { throw new Error(msg); };
+}
 app.post('/a', (req, res) => {
 	const path = req.body.map(p => parseInt(p)).filter(p => !isNaN(p));
 	pool.connect()
@@ -51,17 +48,20 @@ app.post('/a', (req, res) => {
 	    			}
 	    			res.send(ret);
 	    			psql.release();
-	    		})
-	    		.catch(e => {
-	    			console.log(e);
-	    			res.sendStatus(501);
-	    			psql.release();
-	    		});
+	    		}).catch(e => {
+		 			console.log(e.message);
+		 			res.status(501).send(e.message);
+		 			psql.release();
+		 		});
 	    });
 });
 app.get('/q', (req, res) => 
 	pool.connect()
 	    .then(psql => {
+			function fail(e) {
+				psql.release();
+				res.status(501).send(e.message);
+			}
 	    	return Q.all(
 	    		req.query.term.replace(/[^\w\-\' ]/g, '').replace(/ {2,}/g, ' ').split(' ').map(w => psql.query({
 	    			text: 'SELECT ph.id, ph.p FROM dict_ph INNER JOIN dict ON dict.id = dict_ph.word INNER JOIN ph ON ph.id = dict_ph.ph WHERE dict.word = $1 ORDER BY dict_ph.n DESC',
@@ -79,7 +79,7 @@ app.get('/q', (req, res) =>
 			    			psql.query('CREATE TEMPORARY TABLE tbest (pl INT, score FLOAT, n INT PRIMARY KEY);')
 			    				.then(_ => psql.query('INSERT INTO tbest (score, n) VALUES (0, 0), (0, 1), (0, 2);'))
 			    		)
-						.then(_ => psql.query(`INSERT INTO tph (p) VALUES (${phs.map(ph => ph[0]).join('),(')})`))
+						.then(_ => psql.query(`INSERT INTO tph (p) VALUES (${phs.map(ph => ph[0]).join('),(')})`), () => { throw new Error('Temporary table preparation failed.') })
 						.then(_ =>
 				    		(function recurse(i) {
 				    			if(i <= phs.length) // also is the invariant in the PSQL side, which is a bit sketch
@@ -103,7 +103,8 @@ app.get('/q', (req, res) =>
 					    				values: [i].concat(phs.slice(i-3, i).map(ph => ph[0])),
 					    				rowMode: 'array'
 					    			})
-				    				.then(pl => psql.query('INSERT INTO tbest (pl, score, n) VALUES ($1, $2, $3);', (pl.rows[0] || [null, 0]).concat([i]))) // , places.reduce(([pl0, sc0], [pl, sc]) => sc > sc0 ? [pl, sc] : [pl0, sc0], [null, 0]
+				    				.then(pl => psql.query('INSERT INTO tbest (pl, score, n) VALUES ($1, $2, $3);', (pl.rows[0] || [null, 0]).concat([i])), rethrow('Query for terms failed.')) // , places.reduce(([pl0, sc0], [pl, sc]) => sc > sc0 ? [pl, sc] : [pl0, sc0], [null, 0]
+				    				.catch(rethrow('DP array update failed.'))
 				    				.then(_ => console.log('.') || recurse(i + 1));
 					    		else
 					    			return Q.all([
@@ -137,13 +138,12 @@ app.get('/q', (req, res) =>
 								D.map(([_, [l, r]]) => l.concat([r]))
 							]);
 							psql.release();
-						}, fail);
+						}, rethrow('Query for results failed'))
+						.catch(rethrow('Response preparation failed.'));
 					}
 					else {
-						res.status(501).end();
-						psql.release();
+						throw new Error('No dictionary words in phrase.');
 					}
-	    	}, fail)
-	    	.catch(fail);
+	    	}).catch(fail)
     	})
 );
