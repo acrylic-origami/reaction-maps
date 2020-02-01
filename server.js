@@ -2,14 +2,7 @@ const express = require('express');
 	const app = express();
 const Q = require('q');
 const { OrderedMap } = require('immutable');
-const { Pool } = require('pg');
-	const pool = new Pool({
-		host: 'localhost',
-		user: 'web',
-		password: 'bcd49ea46cb5f-cdbb5ace-38',
-		database: 'x2260',
-		idleTimeoutMillis: 0
-	});
+const { pool } = require('./pg');
 
 // const target = 'if only this damn application were easier to program, then i\'d be rolling in it alas too many cities';
 
@@ -18,7 +11,7 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.json());
 
 app.use(express.static('public'));
-app.listen(80);
+app.listen(8080);
 
 // DP
 // psql.query('CREATE TEMPORARY TABLE tph (p VARCHAR(64), n SERIAL PRIMARY KEY);')
@@ -75,7 +68,7 @@ app.get('/q', (req, res) =>
 		    			rowMode: 'array'
 		    		}))
 		    	).then(phs_ => {
-		    		const phs = phs_.map(r => r.rows).flat(); // note: ph ids
+		    		const phs = phs_.map(r => r.rows).flat().reduce((prev, next) => prev.slice(-1)[0] === next ? prev : prev.concat([next]), []); // note: ph ids
 		    		console.log(phs);
 		    		if(phs.length > 0) {
 			    		return Q.all(
