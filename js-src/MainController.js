@@ -51,28 +51,33 @@ export default class extends React.Component {
 	}
 	handle_path = (term, path_) => {
 		const path = path_.filter(p => p[0] !== null);
-		const waypoints = path.map(p => [p[0], latLng(p[1], p[2])] );
-		history.pushState({}, `route-${term}-done`, `?q=${Base64.encode(term)}&a=${encodeURI(path.map(p => p[3]))}`)
-		return fetch(`http://router.project-osrm.org/route/v1/driving/${path.map(p => `${p[2]},${p[1]}`).join(';')}`)
-			.then(r => {
-				if(r.ok)
-					return r.json();
-				else
-					throw new Error('Failed to query OSRM routing server.');
-			})
-			.then(({ routes: [{geometry}] }) =>
-				this.setState(({ n_fulfilled }) => ({
-					path: decode(geometry).map(p => latLng(p[0], p[1])),
+		if(path.length > 1) {
+			const waypoints = path.map(p => [p[0], latLng(p[1], p[2])] );
+			history.pushState({}, `route-${term}-done`, `?q=${Base64.encode(term)}&a=${encodeURI(path.map(p => p[3]))}`);
+			return fetch(`http://router.project-osrm.org/route/v1/driving/${path.map(p => `${p[2]},${p[1]}`).join(';')}`)
+				.then(r => {
+					if(r.ok)
+						return r.json();
+					else
+						throw new Error('Failed to query OSRM routing server.');
+				})
+				.then(({ routes: [{geometry}] }) =>
+					this.setState(({ n_fulfilled }) => ({
+						path: decode(geometry).map(p => latLng(p[0], p[1])),
+						waypoints,
+						n_fulfilled: n_fulfilled + 1
+					}))
+				)
+				.catch(e => this.setState(({ n_fulfilled }) => ({
+					path: waypoints.map(p => p[1]),
 					waypoints,
-					n_fulfilled: n_fulfilled + 1
-				}))
-			)
-			.catch(e => this.setState(({ n_fulfilled }) => ({
-				path: waypoints.map(p => p[1]),
-				waypoints,
-				n_fulfilled: n_fulfilled + 1,
-				err: e.msg
-			})))
+					n_fulfilled: n_fulfilled + 1,
+					err: e.msg
+				})))
+		}
+		else {
+			throw new Error('Not enough waypoints found from phrase.');
+		}
 	}
 	copyURI = () => {
 		const past_focus = document.activeElement;
@@ -126,7 +131,7 @@ export default class extends React.Component {
 		     style={{ height: '100%' }}
 		     zoom={13}
 		     zoomControl={false}
-		     bounds={this.state.path.length > 0 ? latLngBounds(this.state.waypoints.map(p => p[1])) : null}>
+		     bounds={this.state.path.length > 1 ? latLngBounds(this.state.waypoints.map(p => p[1])) : null}>
 			<TileLayer
 				url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 				attribution="&copy; <a href=&quot;http://osm.org/copyright&quot;>OpenStreetMap</a> contributors"
