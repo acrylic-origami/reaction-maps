@@ -68,7 +68,7 @@ app.get('/q', (req, res) =>
 		    			rowMode: 'array'
 		    		}))
 		    	).then(phs_ => {
-		    		const phs = phs_.map(r => r.rows).flat().reduce((prev, next) => prev.slice(-1)[0] === next ? prev : prev.concat([next]), []); // note: ph ids
+		    		const phs = phs_.map(r => r.rows).flat().reduce((prev, next) => prev.length > 0 && prev.slice(-1)[0][0] === next[0] ? prev : prev.concat([next]), []); // note: ph ids
 		    		console.log(phs);
 		    		if(phs.length > 0) {
 			    		return Q.all(
