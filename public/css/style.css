@@ -93,15 +93,6 @@ a, a:visited, a:active {
 	display:inline-block;
 	box-shadow:0 2px 2px rgba(0, 0, 0, 0.15);
 }
-.logo {
-	background-image:url(../img/isometric_black_bordered.png);
-	background-repeat:no-repeat;
-	background-size:contain;
-	vertical-align:middle;
-	width:4em;
-	height:5em;
-	display:inline-block;
-}
 #err_container {
 	background-color:#FFEEEE;
 	padding:1em;

@@ -152,7 +152,6 @@ export default class extends React.Component {
 		</Map>
 		<div id="controls">
 			<ul id="context-bar">
-				<li><a href="//lam.io" target="_blank"><div class="logo"></div></a></li>
 				<li className="boxed"><a href="https://xkcd.com/2260/" title="XKCD comic 2260 (Reaction maps)" target="_blank">XKCD 2260</a></li>
 				<li className="boxed"><a href="https://lam.io/projects/x2260" target="_blank">How does this work?</a></li>
 				<li className="boxed">
