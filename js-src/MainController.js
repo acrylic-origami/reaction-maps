@@ -159,26 +159,29 @@ export default class extends React.Component {
 			<ZoomControl position="topright" />
 		</Map>
 		<div id="controls">
-			<ul id="context-bar">
-				<li className="boxed"><a href="https://xkcd.com/2260/" title="XKCD comic 2260 (Reaction maps)" target="_blank">XKCD 2260</a></li>
-				<li className="boxed"><a href="https://lam.io/projects/x2260" target="_blank">How does this work?</a></li>
-				<li className="boxed">
-					{ this.state.copying ?
-						"Copied!" :
-						<a href="javascript:void(null)" onClick={this.copyURI}>Share this path (copy URI)</a>
-					}
-				</li>
-				<li className="boxed">
-					<a href="https://github.com/acrylic-origami/reaction-maps" target="_blank"><span className="github">&nbsp;</span></a>
-				</li>
-				<li className="boxed">
-					<input type="checkbox" id="show-ph" onChange={e => this.setState({ show_ph: e.target.checked })} checked={ this.state.show_ph } /><label htmlFor="show-ph">Show phonemes</label>
-				</li>
-			</ul>
+			<div id="context_wrapper">
+				<ul id="context_bar">
+					<li className="boxed"><a href="https://xkcd.com/2260/" title="XKCD comic 2260 (Reaction maps)" target="_blank">XKCD 2260</a></li>
+					<li className="boxed"><a href="https://lam.io/projects/x2260" target="_blank">How does this work?</a></li>
+					<li className="boxed">
+						{ this.state.copying ?
+							"Copied!" :
+							<a href="javascript:void(null)" onClick={this.copyURI}>Share this path (copy URI)</a>
+						}
+					</li>
+					<li className="boxed">
+						<a href="https://github.com/acrylic-origami/reaction-maps" target="_blank"><span className="github">&nbsp;</span></a>
+					</li>
+					<li className="boxed">
+						<input type="checkbox" id="show-ph" onChange={e => this.setState({ show_ph: e.target.checked })} checked={ this.state.show_ph } /><label htmlFor="show-ph">Show phonemes</label>
+					</li>
+				</ul>
+			</div>
 			<input type="text" className="hidden" ref={this.uri_stash} value={window.location.href} />
 			<div>
 				<form onSubmit = {e => this.setState(({ n_request }) => ({ n_request: n_request + 1 })) || e.preventDefault()} id="query">
 					<input type="text"
+						id="query_text"
 						ref={this.search_bar_ref}
 						onChange={e => this.setState({ term: e.target.value })}
 						className={this.state.err && 'err'}
