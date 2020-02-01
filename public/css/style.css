@@ -170,9 +170,8 @@ a, a:visited, a:active {
   left: 16px;
   animation: lds-ellipsis2 0.6s infinite;
 }
-.lds-e {
-	background-color:#FFEEEE;
-}t: 28px;
+.lds-ellipsis div:nth-child(4) {
+  left: 28px;
   animation: lds-ellipsis3 0.6s infinite;
 }
 @keyframes lds-ellipsis1 {
