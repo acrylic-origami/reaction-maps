@@ -1,6 +1,6 @@
 # Reaction Maps with n-gram matching
 
-![XKCD 2260 - Reaction Maps](https://imgs.xkcd.com/comics/reaction_maps_2x.png)
+[![XKCD 2260 - Reaction Maps](https://imgs.xkcd.com/comics/reaction_maps_2x.png)](xkcd.com/2260)
 
 <sup>&#xa9; Randall Monroe, 2020</sup>
 
