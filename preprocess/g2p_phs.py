@@ -6,7 +6,7 @@ if os.path.exists('g2p_phs.pkl'):
 	with open('g2p_phs.pkl', 'rb') as f:
 		phs = pickle.load(f)
 else:
-	with open('cit', 'r') as f:
+	with open('city-towns-ph.txt', 'r') as f:
 		phs = {}
 		word = ['', []]
 		for l in f:

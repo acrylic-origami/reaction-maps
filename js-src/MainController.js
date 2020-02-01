@@ -61,6 +61,10 @@ export default class extends React.Component {
 					else
 						throw new Error('Failed to query OSRM routing server.');
 				})
+				.then(r => {
+					if(r.routes.length === 0) throw new Error('No routes found.');
+				        else return r;
+				})
 				.then(({ routes: [{geometry}] }) =>
 					this.setState(({ n_fulfilled }) => ({
 						path: decode(geometry).map(p => latLng(p[0], p[1])),
@@ -72,7 +76,7 @@ export default class extends React.Component {
 					path: waypoints.map(p => p[1]),
 					waypoints,
 					n_fulfilled: n_fulfilled + 1,
-					err: e.msg
+					err: [ e.msg, false ]
 				})))
 		}
 		else {
