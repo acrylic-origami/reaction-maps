@@ -51,8 +51,16 @@ export default class extends React.Component {
 	}
 	handle_path = (term, path_) => {
 		const path = path_.filter(p => p[0] !== null);
-		if(path.length > 1) {
-			const waypoints = path.map(p => [p[0], latLng(p[1], p[2])] );
+		const waypoints = path.map(p => [p[0], latLng(p[1], p[2])] );
+		if(path.length === 1) {
+			this.setState(({ n_fulfilled }) => ({
+				path: [],
+				waypoints,
+				n_fulfilled: n_fulfilled + 1
+			}));
+			return Q();
+		}
+		else if(path.length > 1) {
 			history.pushState({}, `route-${term}-done`, `?q=${Base64.encode(term)}&a=${encodeURI(path.map(p => p[3]))}`);
 			return fetch(`http://router.project-osrm.org/route/v1/driving/${path.map(p => `${p[2]},${p[1]}`).join(';')}`)
 				.then(r => {
@@ -131,7 +139,7 @@ export default class extends React.Component {
 	
 	
 	render = _ => <div>
-		<Map center={RANDALL}
+		<Map center={this.state.waypoints.length === 1 ? this.state.waypoints[0][1] : RANDALL}
 		     style={{ height: '100%' }}
 		     zoom={13}
 		     zoomControl={false}
