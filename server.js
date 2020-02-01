@@ -56,7 +56,7 @@ app.get('/q', (req, res) =>
 				psql.release();
 				res.status(501).send(e.message);
 			}
-			const terms0 = req.query.term.replace(/[^\w\-\' ]/g, '').replace(/ {2,}/g, ' ').split(' ')
+			const terms0 = req.query.term.replace(/[^\w\-\' ]/g, '').replace(/ {2,}/g, ' ').toLowerCase().split(' ')
 			if(terms0.length > N_MAX) {
 				fail(new Error('Phrase not short and sweet enough (>32 words)'));
 			}
