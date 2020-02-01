@@ -4,7 +4,7 @@ body, html {
 	margin:0;
 	box-sizing:border-box;
 	font-family:sans-serif;
-	font-size:0.9em;
+	/* font-size:0.9em; */
 }
 a, a:visited, a:active {
 	color:#216eeb;
@@ -82,7 +82,10 @@ a, a:visited, a:active {
 #context-bar > li:first-child {
 	margin-left:0;
 }
-#context-bar > li, #phoneme_pane, #err_container {
+#context-bar > li {
+	display:inline-block;
+}
+#context-bar > li.boxed, #phoneme_pane, #err_container {
 	background-color: #FFF;
 	border-radius:0.2em;
 	border:#BBB solid 1px;
@@ -90,13 +93,22 @@ a, a:visited, a:active {
 	display:inline-block;
 	box-shadow:0 2px 2px rgba(0, 0, 0, 0.15);
 }
+.logo {
+	background-image:url(../img/isometric_black_bordered.png);
+	background-repeat:no-repeat;
+	background-size:contain;
+	vertical-align:middle;
+	width:4em;
+	height:5em;
+	display:inline-block;
+}
 #err_container {
 	background-color:#FFEEEE;
 	padding:1em;
 	color:#922;
 }
-#context-bar > li {
-	margin:1em;
+#context-bar > li.boxed {
+	margin:1.5em 1em;
 	margin-right:0;
 	padding:1em;
 }
