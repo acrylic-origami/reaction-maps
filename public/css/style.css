@@ -164,7 +164,7 @@ a, a:visited, a:active {
 }
 #phoneme_pane .term {
 	font-family:monospace;
-	margin:0 0.2em;
+	/*margin:0 0.2em;*/
 	display:inline-block;
 }
 .phoneme-list {

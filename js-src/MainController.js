@@ -7,6 +7,8 @@ import { Base64 } from 'js-base64';
 
 const RANDALL = [42.2377016, -93.6014727];
 
+const IPA = { 'AE':'&aelig;', 'A':'&#592;', 'AA':'&#593;', 'B':'b', 'D':'d', 'DH':'&eth;', 'AX':'&#601;', 'EH':'&epsilon;', 'F':'f', 'G':'g', 'H':'h', 'IH':'&#618;', 'IX':'&#616;', 'IY':'i', 'K':'k', 'L':'l', 'EL':'&#7735;', 'M':'m', 'M':'m', 'N':'n', 'NG':'&#331;', 'AO':'&#596;', 'P':'p', 'R':'&#633;', 'NX':'n&#33E', 'DX':'&#638;', 'S':'s', 'SH':'&#643;', 'T':'t', 'TH':'&theta;', 'UW':'u', 'UH':'&#650;', 'UX':'&#649;', 'V':'v', 'W':'w', 'WH':'&#653;', 'Y':'j', 'Z':'z', 'ZH':'&#658;', 'Q':'&#660;', 'AW':'a&#650;', 'AY':'a&#618;', 'OW':'o&#650;', 'OY':'&#596;&#618;', 'CH':'&#643;', 'JH':'d&#658;', 'EM':'m&#329;', 'EN':'n&#329;' };
+
 function fromURL() {
 	const U = new URLSearchParams(window.location.search);
 	const m_term0 = U.get('q');
@@ -219,13 +221,13 @@ export default class extends React.Component {
 					<div id="in_ph">
 						<h3>Query phonemes:</h3>
 						<ul className="phoneme-list">
-							{this.state.term_ph.map((ph, k) => <li key={k} className="term">{ph}</li> )}
+							{this.state.term_ph.map((ph, k) => <li key={k} className="term" dangerouslySetInnerHTML={{__html: IPA[ph.trim()] }}></li> )}
 						</ul>
 					</div>
 					<div id="out_ph">
 						<h3>Path phonemes:</h3>
 						<ul className="phoneme-list">
-							{this.state.path_ph.map((ph, k) => <li key={k} className="term">{ph}</li> )}
+							{this.state.path_ph.map((ph, k) => <li key={k} className="term" dangerouslySetInnerHTML={{__html: IPA[ph.trim()] }}></li> )}
 						</ul>
 					</div>
 				</div>
