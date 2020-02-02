@@ -7,16 +7,29 @@ import { Base64 } from 'js-base64';
 
 const RANDALL = [42.2377016, -93.6014727];
 
+function fromURL() {
+	const U = new URLSearchParams(window.location.search);
+	const m_term0 = U.get('q');
+	const m_path0 = U.get('a');
+	return {
+		term: m_term0 ? Base64.decode(m_term0) : null,
+		path: m_path0 ? m_path0.split(',').map(p => parseInt(p)) : null
+	}
+}
+
+
 export default class extends React.Component {
 	constructor(props) {
 		super(props);
 		this.search_bar_ref = React.createRef();
 		this.uri_stash = React.createRef();
-		console.log(this.props.term0);
+		
+		const { term, path } = fromURL();
+		
 		this.state = {
-			term: this.props.term0 || "",
+			term: term || "",
 			term_ph: [],
-			n_request: +(this.props.path0 !== null),
+			n_request: +(path !== null),
 			n_fulfilled: 0,
 			request: null,
 			show_ph: false,
@@ -27,21 +40,12 @@ export default class extends React.Component {
 			copying: false
 		};
 		
-		if(this.props.path0 !== null) {
-			const path0 = this.props.path0.filter(a => !isNaN(a));
-			const F = new FormData();
-			F.set('path', path0);
-			if(path0.length > 0) {
-				fetch('/a', {
-					method: 'POST',
-					headers: new Headers({ 'content-type': 'application/json' }),
-					body: JSON.stringify(path0)
-				})
-				.then(res => res.json())
-				.then(path => this.handle_path('', path))
-				.catch(_ => this.fail(new Error('Could not handle path supplied by URL')))
-			}
-		}
+		window.addEventListener('popstate', e => {
+			const { term, path } = fromURL();
+			this.setState({ term });
+			this.handle_uri_path(path);
+		});
+		this.handle_uri_path(path);
 	}
 	componentDidMount() {
 		this.search_bar_ref.current.focus();
@@ -49,7 +53,25 @@ export default class extends React.Component {
 	fail = (e) => {
 		this.setState(({ n_fulfilled }) => ({ err: [e.message, false], n_fulfilled: n_fulfilled + 1 }));
 	}
-	handle_path = (term, path_) => {
+	handle_uri_path = (ids) => {
+		if(ids !== null && ids.length > 0) {
+			ids.filter(a => !isNaN(a));
+			const F = new FormData();
+			F.set('path', ids);
+			return fetch('/a', {
+				method: 'POST',
+				headers: new Headers({ 'content-type': 'application/json' }),
+				body: JSON.stringify(ids)
+			})
+			.then(res => res.json())
+			.then(path => this.handle_path('', path, false))
+			.catch(_ => this.fail(new Error('Could not handle path supplied by URL')))
+		}
+		else {
+			return Q();
+		}
+	}
+	handle_path = (term, path_, push = true) => {
 		const path = path_.filter(p => p[0] !== null);
 		const waypoints = path.map(p => [p[0], latLng(p[1], p[2])] );
 		if(path.length === 1) {
@@ -61,7 +83,9 @@ export default class extends React.Component {
 			return Q();
 		}
 		else if(path.length > 1) {
-			history.pushState({}, `route-${term}-done`, `?q=${Base64.encode(term)}&a=${encodeURI(path.map(p => p[3]))}`);
+			if(push)
+				history.pushState({}, `route-${term}-done`, `?q=${Base64.encode(term)}&a=${encodeURI(path.map(p => p[3]))}`);
+			
 			return fetch(`http://router.project-osrm.org/route/v1/driving/${path.map(p => `${p[2]},${p[1]}`).join(';')}`)
 				.then(r => {
 					if(r.ok)
@@ -166,7 +190,7 @@ export default class extends React.Component {
 					<li className="boxed">
 						{ this.state.copying ?
 							"Copied!" :
-							<a href="javascript:void(null)" onClick={this.copyURI}>Share this path (copy URI)</a>
+							<a href="#" onClick={this.copyURI}>Share this path (copy URI)</a>
 						}
 					</li>
 					<li className="boxed">
@@ -177,7 +201,7 @@ export default class extends React.Component {
 					</li>
 				</ul>
 			</div>
-			<input type="text" className="hidden" ref={this.uri_stash} value={window.location.href} />
+			<input type="text" className="hidden" ref={this.uri_stash} value={window.location.href} onChange={_ => {}} />
 			<div>
 				<form onSubmit = {e => this.setState(({ n_request }) => ({ n_request: n_request + 1 })) || e.preventDefault()} id="query">
 					<input type="text"
