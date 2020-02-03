@@ -4,7 +4,7 @@
 
 <sup>&#xa9; Randall Monroe, 2020</sup>
 
-Reaction maps, AKA homophones with US cities. This version uses 3 phonemes at the ends of city names (from GeoNames' gazetteer data) to reconstruct sentences that sound similar.
+Reaction maps, AKA homophones with North American cities. This version uses 3 phonemes at the ends of city names (from [Geofabrik's version of the OSM North American places dataset](https://download.geofabrik.de/north-america.html)) to reconstruct sentences that sound similar.
 
 Use it here! [maps.lam.io](http://maps.lam.io)
 
@@ -21,7 +21,7 @@ On the live site, the following is used:
 
 The full SQL database can be found [here, on Google Drive](https://drive.google.com/open?id=1A23yMBE2DqPsT5-oiqt_m9Nzuqa33Fy2) with the table of place names `pl` under the same license as the OSM: [the Open Data Commons Open Database License (ODbL)](https://www.openstreetmap.org/copyright).
 
-The server uses `expressjs` to serve pages. First, you must have a database config file that defines a node-postgres connection pool. Supposing you installed into database `reaction_maps`, for a postgres user `postgres` with password `postgres`, this will work:
+The server uses `expressjs` to serve pages. First, **you must have a database config file at `./pg.js`** that defines a node-postgres connection pool. Supposing you installed into database `reaction_maps`, for a postgres user `postgres` with password `postgres`, this will work:
 
 ```js
 const { Pool } = require('pg');
