@@ -7,16 +7,31 @@ import { Base64 } from 'js-base64';
 
 const RANDALL = [42.2377016, -93.6014727];
 
+const IPA = { 'AE':'&aelig;', 'AH':'&#592;', 'AA':'&#593;', 'B':'b', 'D':'d', 'DH':'&eth;', 'AX':'&#601;', 'EH':'&epsilon;', 'ER': '&#602;', 'EY':'e&#618;', 'F':'f', 'G':'g', 'H':'h', 'IH':'&#618;', 'IX':'&#616;', 'IY':'i', 'K':'k', 'L':'l', 'EL':'&#7735;', 'M':'m', 'M':'m', 'N':'n', 'NG':'&#331;', 'AO':'&#596;', 'P':'p', 'R':'&#633;', 'NX':'n&#33E', 'DX':'&#638;', 'S':'s', 'SH':'&#643;', 'T':'t', 'TH':'&theta;', 'UW':'u', 'UH':'&#650;', 'UX':'&#649;', 'V':'v', 'W':'w', 'WH':'&#653;', 'Y':'j', 'Z':'z', 'ZH':'&#658;', 'Q':'&#660;', 'AW':'a&#650;', 'AY':'a&#618;', 'OW':'o&#650;', 'OY':'&#596;&#618;', 'CH':'&#643;', 'JH':'d&#658;', 'EM':'m&#329;', 'EN':'n&#329;' };
+
+function fromURL() {
+	const U = new URLSearchParams(window.location.search);
+	const m_term0 = U.get('q');
+	const m_path0 = U.get('a');
+	return {
+		term: m_term0 ? Base64.decode(m_term0) : null,
+		path: m_path0 ? m_path0.split(',').map(p => parseInt(p)) : null
+	}
+}
+
+
 export default class extends React.Component {
 	constructor(props) {
 		super(props);
 		this.search_bar_ref = React.createRef();
 		this.uri_stash = React.createRef();
-		console.log(this.props.term0);
+		
+		const { term, path } = fromURL();
+		
 		this.state = {
-			term: this.props.term0 || "",
+			term: term || "",
 			term_ph: [],
-			n_request: +(this.props.path0 !== null),
+			n_request: +(path !== null),
 			n_fulfilled: 0,
 			request: null,
 			show_ph: false,
@@ -27,21 +42,12 @@ export default class extends React.Component {
 			copying: false
 		};
 		
-		if(this.props.path0 !== null) {
-			const path0 = this.props.path0.filter(a => !isNaN(a));
-			const F = new FormData();
-			F.set('path', path0);
-			if(path0.length > 0) {
-				fetch('/a', {
-					method: 'POST',
-					headers: new Headers({ 'content-type': 'application/json' }),
-					body: JSON.stringify(path0)
-				})
-				.then(res => res.json())
-				.then(path => this.handle_path('', path))
-				.catch(_ => this.fail(new Error('Could not handle path supplied by URL')))
-			}
-		}
+		window.addEventListener('popstate', e => {
+			const { term, path } = fromURL();
+			this.setState({ term });
+			this.handle_uri_path(path);
+		});
+		this.handle_uri_path(path);
 	}
 	componentDidMount() {
 		this.search_bar_ref.current.focus();
@@ -49,11 +55,39 @@ export default class extends React.Component {
 	fail = (e) => {
 		this.setState(({ n_fulfilled }) => ({ err: [e.message, false], n_fulfilled: n_fulfilled + 1 }));
 	}
-	handle_path = (term, path_) => {
+	handle_uri_path = (ids) => {
+		if(ids !== null && ids.length > 0) {
+			ids.filter(a => !isNaN(a));
+			const F = new FormData();
+			F.set('path', ids);
+			return fetch('/a', {
+				method: 'POST',
+				headers: new Headers({ 'content-type': 'application/json' }),
+				body: JSON.stringify(ids)
+			})
+			.then(res => res.json())
+			.then(path => this.handle_path('', path, false))
+			.catch(_ => this.fail(new Error('Could not handle path supplied by URL')))
+		}
+		else {
+			return Q();
+		}
+	}
+	handle_path = (term, path_, push = true) => {
 		const path = path_.filter(p => p[0] !== null);
-		if(path.length > 1) {
-			const waypoints = path.map(p => [p[0], latLng(p[1], p[2])] );
-			history.pushState({}, `route-${term}-done`, `?q=${Base64.encode(term)}&a=${encodeURI(path.map(p => p[3]))}`);
+		const waypoints = path.map(p => [p[0], latLng(p[1], p[2])] );
+		if(path.length === 1) {
+			this.setState(({ n_fulfilled }) => ({
+				path: [],
+				waypoints,
+				n_fulfilled: n_fulfilled + 1
+			}));
+			return Q();
+		}
+		else if(path.length > 1) {
+			if(push)
+				history.pushState({}, `route-${term}-done`, `?q=${Base64.encode(term)}&a=${encodeURI(path.map(p => p[3]))}`);
+			
 			return fetch(`http://router.project-osrm.org/route/v1/driving/${path.map(p => `${p[2]},${p[1]}`).join(';')}`)
 				.then(r => {
 					if(r.ok)
@@ -94,15 +128,15 @@ export default class extends React.Component {
 		// console.log(this.state.n_request, this.state.n_fulfilled);
 		if(this.state.err !== null && !this.state.err[1]) {
 			const this_err = this.state.err[0];
-			this.setState(({ err: [err, _] }) => (err === this_err ? { err: [this_err, true] } : {}));
-			setTimeout(_ => this.setState(({ err: [err, _] }) => (err === this_err ? { err: null } : {})), 4000);
+			this.setState(({ err }) => err !== null && (err[0] === this_err ? { err: [this_err, true] } : {}));
+			setTimeout(_ => this.setState(({ err }) => err !== null && (err[0] === this_err ? { err: null } : {})), 4000);
 		}
 		if(this.state.copying)
 			setTimeout(_ => this.setState({ copying: false }), 1000);
 		
 		if(l.n_request != this.state.n_request) {
 			const term = this.state.term;
-			history.pushState({}, `route-${term}`, `?q=${Base64.encode(term)}`)
+			// history.pushState({}, `route-${term}`, `?q=${Base64.encode(term)}`)
 			const fail = e => {
 				console.log(e);
 				this.setState(({ n_fulfilled }) => { n_fulfilled + 1 });
@@ -131,7 +165,7 @@ export default class extends React.Component {
 	
 	
 	render = _ => <div>
-		<Map center={RANDALL}
+		<Map center={this.state.waypoints.length === 1 ? this.state.waypoints[0][1] : RANDALL}
 		     style={{ height: '100%' }}
 		     zoom={13}
 		     zoomControl={false}
@@ -185,13 +219,13 @@ export default class extends React.Component {
 					<div id="in_ph">
 						<h3>Query phonemes:</h3>
 						<ul className="phoneme-list">
-							{this.state.term_ph.map((ph, k) => <li key={k} className="term">{ph}</li> )}
+							{this.state.term_ph.map((ph, k) => <li key={k} className="term" dangerouslySetInnerHTML={{__html: IPA[ph.trim()] }}></li> )}
 						</ul>
 					</div>
 					<div id="out_ph">
 						<h3>Path phonemes:</h3>
 						<ul className="phoneme-list">
-							{this.state.path_ph.map((ph, k) => <li key={k} className="term">{ph}</li> )}
+							{this.state.path_ph.map((ph, k) => <li key={k} className="term" dangerouslySetInnerHTML={{__html: IPA[ph.trim()] }}></li> )}
 						</ul>
 					</div>
 				</div>

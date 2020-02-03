@@ -2,14 +2,7 @@ const express = require('express');
 	const app = express();
 const Q = require('q');
 const { OrderedMap } = require('immutable');
-const { Pool } = require('pg');
-	const pool = new Pool({
-		host: 'localhost',
-		user: 'web',
-		password: 'bcd49ea46cb5f-cdbb5ace-38',
-		database: 'x2260',
-		idleTimeoutMillis: 0
-	});
+const { pool } = require('./pg');
 
 // const target = 'if only this damn application were easier to program, then i\'d be rolling in it alas too many cities';
 
@@ -63,11 +56,12 @@ app.get('/q', (req, res) =>
 				psql.release();
 				res.status(501).send(e.message);
 			}
-			const terms0 = req.query.term.replace(/[^\w\-\' ]/g, '').replace(/ {2,}/g, ' ').split(' ')
+			const terms0 = req.query.term.replace(/[^\w\-\' ]/g, '').replace(/ {2,}/g, ' ').toLowerCase().split(' ')
 			if(terms0.length > N_MAX) {
 				fail(new Error('Phrase not short and sweet enough (>32 words)'));
 			}
 			else {
+		    	console.log('P: ', Date.now(), req.query.term);
 		    	return Q.all(
 		    		terms0.map(w => psql.query({
 		    			text: 'SELECT ph.id, ph.p FROM dict_ph INNER JOIN dict ON dict.id = dict_ph.word INNER JOIN ph ON ph.id = dict_ph.ph WHERE dict.word = $1 ORDER BY dict_ph.n DESC',
@@ -75,15 +69,14 @@ app.get('/q', (req, res) =>
 		    			rowMode: 'array'
 		    		}))
 		    	).then(phs_ => {
-		    		const phs = phs_.map(r => r.rows).flat(); // note: ph ids
-		    		console.log(phs);
+		    		const phs = phs_.map(r => r.rows).flat().reduce((prev, next) => prev.length > 0 && prev.slice(-1)[0][0] === next[0] ? prev : prev.concat([next]), []); // note: ph ids
 		    		if(phs.length > 0) {
 			    		return Q.all(
 			    				psql.query('DROP TABLE IF EXISTS tph;'),
 			    				psql.query('DROP TABLE IF EXISTS tbest;'),
 				    			psql.query('CREATE TEMPORARY TABLE tph (p INT, n SERIAL PRIMARY KEY);'), /// , FOREIGN KEY (p) REFERENCES ph (id)
 				    			psql.query('CREATE TEMPORARY TABLE tbest (pl INT, score FLOAT, n INT PRIMARY KEY);')
-				    				.then(_ => psql.query('INSERT INTO tbest (score, n) VALUES (0, 0), (0, 1), (0, 2);'))
+				    				.then(_ => psql.query('INSERT INTO tbest (score, n) VALUES (0, 0), (0, 1);'))
 				    		)
 							.then(_ => psql.query(`INSERT INTO tph (p) VALUES (${phs.map(ph => ph[0]).join('),(')})`), () => { throw new Error('Temporary table preparation failed.') })
 							.then(_ =>
@@ -91,7 +84,7 @@ app.get('/q', (req, res) =>
 					    			if(i <= phs.length) // also is the invariant in the PSQL side, which is a bit sketch
 					    				return psql.query({
 					    					text: `SELECT id, s FROM (
-												  SELECT pl.id, pl.nph, MAX(tbest.score) + SUM(ph_w.w) AS s
+												  SELECT pl.id, pl.nph, MAX(tbest.score) + SUM(ph_w.w) * pl.nph / COUNT(*) AS s
 												    FROM ng3
 
 												    INNER JOIN ng_ng_w ng_alt ON ng_alt.a = ng3.id
@@ -107,18 +100,18 @@ app.get('/q', (req, res) =>
 												  ) st1
 												ORDER BY s DESC
 												LIMIT 1;`,
-						    				values: [i].concat(phs.slice(i-3, i).map(ph => ph[0])),
+						    				values: [i].concat(Array(Math.max(0, 3-i)).concat(phs.slice(Math.max(i-3,0), i)).map(ph => ph[0])),
 						    				rowMode: 'array'
 						    			})
 					    				.then(pl => psql.query('INSERT INTO tbest (pl, score, n) VALUES ($1, $2, $3);', (pl.rows[0] || [null, 0]).concat([i])), rethrow('Query for terms failed.')) // , places.reduce(([pl0, sc0], [pl, sc]) => sc > sc0 ? [pl, sc] : [pl0, sc0], [null, 0]
-					    				.then(_ => console.log('.') || recurse(i + 1))
+					    				.then(_ => recurse(i + 1))
 					    				.catch(rethrow('DP array update failed.'));
 						    		else
 						    			return Q.all([
 						    				psql.query({
 							    				text: `
 								    				WITH RECURSIVE t (n, name, lat, lon, id) AS (
-								    					SELECT n - pl.nph, pl.name, pl.lat, pl.lon, pl.id FROM tbest INNER JOIN pl ON pl.id = tbest.pl WHERE n = (SELECT MAX(n) FROM tbest WHERE pl IS NOT NULL)
+								    					SELECT n - pl.nph, pl.name, pl.lat, pl.lon, pl.id FROM tbest INNER JOIN pl ON pl.id = tbest.pl WHERE n = (SELECT n FROM tbest ORDER BY score DESC LIMIT 1)
 								    					UNION ALL
 								    					SELECT tbest.n - COALESCE(pl.nph, 1), pl.name, pl.lat, pl.lon, pl.id FROM t
 								    						INNER JOIN tbest ON tbest.n = t.n
@@ -136,7 +129,7 @@ app.get('/q', (req, res) =>
 						    					rowMode: 'array'
 						    				})
 					    				]);
-					    		})(3)
+					    		})(2)
 							)
 							.then(([route, best]) => {
 								const D = route.rows.reduce((D_, p) => D_.update(p[3], [p.slice(0,-1), []], (([l, r]) => [l, r.concat([p[4]])])), new OrderedMap()).toArray();
