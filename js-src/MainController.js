@@ -128,7 +128,7 @@ export default class extends React.Component {
 		// console.log(this.state.n_request, this.state.n_fulfilled);
 		if(this.state.err !== null && !this.state.err[1]) {
 			const this_err = this.state.err[0];
-			this.setState(({ err: [err, _] }) => (err === this_err ? { err: [this_err, true] } : {}));
+			this.setState(({ err }) => err !== null && (err[0] === this_err ? { err: [this_err, true] } : {}));
 			setTimeout(_ => this.setState(({ err: [err, _] }) => (err === this_err ? { err: null } : {})), 4000);
 		}
 		if(this.state.copying)
@@ -221,13 +221,13 @@ export default class extends React.Component {
 					<div id="in_ph">
 						<h3>Query phonemes:</h3>
 						<ul className="phoneme-list">
-							{this.state.term_ph.map((ph, k) => <li key={k} className="term" dangerouslySetInnerHTML={{__html: IPA[ph.trim()] }}></li> )}
+							{this.state.term_ph.map((ph, k) => <li key={k} className="term" dangerouslySetInnerHTML={{__html: ph.trim() }}></li> )}
 						</ul>
 					</div>
 					<div id="out_ph">
 						<h3>Path phonemes:</h3>
 						<ul className="phoneme-list">
-							{this.state.path_ph.map((ph, k) => <li key={k} className="term" dangerouslySetInnerHTML={{__html: IPA[ph.trim()] }}></li> )}
+							{this.state.path_ph.map((ph, k) => <li key={k} className="term" dangerouslySetInnerHTML={{__html:ph.trim() }}></li> )}
 						</ul>
 					</div>
 				</div>
