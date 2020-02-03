@@ -21,4 +21,18 @@ On the live site, the following is used:
 
 The full SQL database can be found [here, on Google Drive](https://drive.google.com/open?id=1A23yMBE2DqPsT5-oiqt_m9Nzuqa33Fy2) with the table of place names `pl` under the same license as the OSM: [the Open Data Commons Open Database License (ODbL)](https://www.openstreetmap.org/copyright).
 
-The server uses `expressjs` to serve pages. To launch, run `node server.js`. To build, run `npx webpack`. The site pulls from the OSM public tileserver at the moment, so don't go too crazy.
+The server uses `expressjs` to serve pages. First, you must have a database config file that defines a node-postgres connection pool. Supposing you installed into database `reaction_maps`, for a postgres user `postgres` with password `postgres`, this will work:
+
+```js
+const { Pool } = require('pg');
+module.exports = {
+	pool: (new Pool({
+		host: 'localhost',
+		user: 'reaction_maps',
+		database: 'postgres',
+		database: 'postgres'
+	}))
+};
+```
+
+To launch, run `node server.js`. To build, run `npx webpack`. The site pulls from the OSM public tileserver at the moment, so don't go too crazy.
