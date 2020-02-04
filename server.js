@@ -76,9 +76,9 @@ app.get('/q', (req, res) =>
 			    				psql.query('DROP TABLE IF EXISTS tbest;'),
 				    			psql.query('CREATE TEMPORARY TABLE tph (p INT, n SERIAL PRIMARY KEY);'), /// , FOREIGN KEY (p) REFERENCES ph (id)
 				    			psql.query('CREATE TEMPORARY TABLE tbest (pl INT, score FLOAT, n INT PRIMARY KEY);')
-				    				.then(_ => psql.query('INSERT INTO tbest (score, n) VALUES (0, 0), (0, 1);'))
+				    				.then(_ => psql.query('INSERT INTO tbest (score, n) VALUES (0, 0);'))
 				    		)
-							.then(_ => psql.query(`INSERT INTO tph (p) VALUES (${phs.map(ph => ph[0]).join('),(')})`), () => { throw new Error('Temporary table preparation failed.') })
+							.then(_ => console.log(`INSERT INTO tph (p) VALUES (${phs.map(ph => ph[0]).join('),(')})`) || psql.query(`INSERT INTO tph (p) VALUES (${phs.map(ph => ph[0]).join('),(')})`), () => { throw new Error('Temporary table preparation failed.') })
 							.then(_ =>
 					    		(function recurse(i) {
 					    			if(i <= phs.length) // also is the invariant in the PSQL side, which is a bit sketch
@@ -95,12 +95,13 @@ app.get('/q', (req, res) =>
 												    INNER JOIN tph ON tph.n = $1 - pl_ph.n + 1
 												    INNER JOIN ph_w ON ph_w.a = tph.p AND ph_w.b = pl_ph.ph
 												    
-												    WHERE ng3.a = $4 AND ng3.b = $3 AND ng3.c = $2
+												    WHERE ng3.a = COALESCE($4, ng3.a) AND ng3.b = COALESCE($3, ng3.b) AND ng3.c = $2
+												    	AND pl.nph <= $1
 												    GROUP BY pl.id
 												  ) st1
 												ORDER BY s DESC
 												LIMIT 1;`,
-						    				values: [i].concat(Array(Math.max(0, 3-i)).concat(phs.slice(Math.max(i-3,0), i)).map(ph => ph[0])),
+						    				values: [i].concat(phs.slice(Math.max(i-3,0), i).map(ph => ph[0]).concat(Array(Math.max(0, 3-i)))),
 						    				rowMode: 'array'
 						    			})
 					    				.then(pl => psql.query('INSERT INTO tbest (pl, score, n) VALUES ($1, $2, $3);', (pl.rows[0] || [null, 0]).concat([i])), rethrow('Query for terms failed.')) // , places.reduce(([pl0, sc0], [pl, sc]) => sc > sc0 ? [pl, sc] : [pl0, sc0], [null, 0]
@@ -129,7 +130,7 @@ app.get('/q', (req, res) =>
 						    					rowMode: 'array'
 						    				})
 					    				]);
-					    		})(2)
+					    		})(1)
 							)
 							.then(([route, best]) => {
 								const D = route.rows.reduce((D_, p) => D_.update(p[3], [p.slice(0,-1), []], (([l, r]) => [l, r.concat([p[4]])])), new OrderedMap()).toArray();
